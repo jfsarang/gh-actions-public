@@ -1,6 +1,9 @@
 name: Reusable - Build, Push, Promote Docker Image
 
 on:
+  push:
+    branches:
+      - main
   workflow_call:
     inputs:
       image_name:
