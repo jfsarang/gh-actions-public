@@ -1,24 +1,22 @@
-# Use the official Ubuntu 22.04 LTS image as a base
-FROM ubuntu:22.04
+FROM ubuntu:22.04 AS deployed-docker
 
-# 1. Combine apt-get update, install, and cleanup in a single RUN command
-#    - Reduces image layers and ensures package lists are fresh for the install.
-#    - `--no-install-recommends` avoids installing unnecessary packages.
-#    - `rm -rf /var/lib/apt/lists/*` cleans up the apt cache to reduce image size.
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3-jwt \
-    python3-wheel \
-    python3-setuptools \
-    python3-cryptography \
-    && rm -rf /var/lib/apt/lists/*
+# 1. Use the official slim Python image as a base
+# This image is much smaller than Ubuntu and is optimized for Python.
+FROM python:3.10-slim
 
-# --- Your application code would go here ---
+# 2. Set a working directory in the container
+WORKDIR /app
 
-# Example: Set a working directory
-# WORKDIR /app
+# 3. Copy only the requirements file first to leverage Docker's build cache
+# This layer only gets rebuilt if requirements.txt changes.
+#COPY requirements.txt .
 
-# Example: Copy your application files into the image
-# COPY . .
+# 4. Install the Python dependencies using pip
+#RUN pip install --no-cache-dir -r requirements.txt
 
-# Example: Define the command to run when the container starts
-# CMD ["python3", "your_app.py"]
+# 5. Copy the rest of your application code into the image
+# This layer will be rebuilt if any of your code files change.
+COPY . .
+
+# 6. Define the command to run your application
+CMD ["python3", "your_app.py"]
