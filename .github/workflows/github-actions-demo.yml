@@ -37,7 +37,7 @@ jobs:
       JF_URL: ${{ secrets.JF_URL }}
       IMG_NAME: ${{ vars.IMAGE_NAME }}
       JFROG_CLI_BUILD_NAME: ${{ vars.IMAGE_NAME }}-docker
-      JF_DOCKER_REPO:  ${{ vars.JF_DOCKER_REPO }}
+      # JF_DOCKER_REPO:  ${{ vars.JF_DOCKER_REPO }}
       TAG: ${{ github.sha }}-${{ vars.IMAGE_NAME }}
       JF_REGISTRY: ${{ vars.JF_REGISTRY }}
 
@@ -73,7 +73,7 @@ jobs:
 
       - name: Build and Push Docker Image
         run: |
-          IMAGE_FULL_NAME="${JF_REGISTRY}/${JFROG_CLI_PROJECT}-${JF_DOCKER_REPO}/${IMG_NAME}"
+          IMAGE_FULL_NAME="${JF_REGISTRY}/raphaelz-stage-docker/${IMG_NAME}"
           echo "Building Docker image: $IMAGE_FULL_NAME:$TAG"
           docker build --target $IMG_NAME -t $IMAGE_FULL_NAME:$TAG -f ./Dockerfile .
 
@@ -98,4 +98,4 @@ jobs:
 
       - name: Promote Release Bundle
         run: |
-          jf rbp "$JFROG_CLI_BUILD_NAME" "$JFROG_CLI_BUILD_NUMBER" DEV --project="$JFROG_CLI_PROJECT" --include-repos "oci-local"
+          jf rbp "$JFROG_CLI_BUILD_NAME" "$JFROG_CLI_BUILD_NUMBER" DEV --project="$JFROG_CLI_PROJECT" --include-repos "raphaelz-release-docker"
