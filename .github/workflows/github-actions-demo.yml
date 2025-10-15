@@ -39,6 +39,7 @@ jobs:
       JFROG_CLI_BUILD_NAME: ${{ vars.IMAGE_NAME }}-docker
       JF_DOCKER_REPO:  ${{ vars.JF_DOCKER_REPO }}
       TAG: ${{ github.sha }}-${{ vars.IMAGE_NAME }}
+      JF_REGISTRY: ${{ vars.JF_REGISTRY }}
 
     steps:
       - name: Checkout Repository
@@ -66,13 +67,13 @@ jobs:
       - name: Docker Login to JFrog
         uses: docker/login-action@v3
         with:
-          registry: ${{ vars.JF_REGISTRY }}
+          registry: ${{ env.JF_REGISTRY }}
           username: ${{ secrets.JF_USERNAME }}
           password: ${{ secrets.JF_PASSWORD }}
 
       - name: Build and Push Docker Image
         run: |
-          IMAGE_FULL_NAME="${JF_URL}/${JFROG_CLI_PROJECT}-${JF_DOCKER_REPO}/${IMG_NAME}"
+          IMAGE_FULL_NAME="${JF_REGISTRY}/${JFROG_CLI_PROJECT}-${JF_DOCKER_REPO}/${IMG_NAME}"
           echo "Building Docker image: $IMAGE_FULL_NAME:$TAG"
           docker build --target $IMG_NAME -t $IMAGE_FULL_NAME:$TAG -f ./Dockerfile .
 
