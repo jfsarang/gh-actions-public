@@ -98,4 +98,4 @@ jobs:
 
       - name: Promote Release Bundle
         run: |
-          jf rbp "$JFROG_CLI_BUILD_NAME" "$JFROG_CLI_BUILD_NUMBER" DEV --project="$JFROG_CLI_PROJECT" --include-repos "${JFROG_CLI_PROJECT}-docker-preprod"
+          jf rbp "$JFROG_CLI_BUILD_NAME" "$JFROG_CLI_BUILD_NUMBER" DEV --project="$JFROG_CLI_PROJECT" --include-repos "oci-local"
