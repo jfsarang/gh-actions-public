@@ -58,7 +58,7 @@ jobs:
         uses: actions/attest-build-provenance@v3
         with:
           # The 'oci://' prefix is required by JFrog to correctly parse the artifact type
-          subject-name: oci://sarangeplus.jfrog.io/${{ env.JF_DOCKER_REPO }}/${{ env.IMAGE_NAME }}-with-push
+          subject-name: sarangeplus.jfrog.io/${{ env.JF_DOCKER_REPO }}/${{ env.IMAGE_NAME }}-with-push
           # This links the attestation directly to the image digest from the build step
           subject-digest: ${{ steps.build-and-push.outputs.digest }}
           push-to-registry: true
