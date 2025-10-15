@@ -58,8 +58,8 @@ jobs:
         env:
           JF_URL: ${{ secrets.JF_URL }}
           JF_PROJECT: ${{ vars.JF_PROJECT }}
+          JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
         with:
-          oidc-provider-name: githubci
           disable-auto-build-publish: true
 
       - name: Docker Login to JFrog
