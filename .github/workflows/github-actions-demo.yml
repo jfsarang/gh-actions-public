@@ -14,7 +14,7 @@ on:
         description: "JFrog URL (e.g. mycompany.jfrog.io)"
         required: true
         type: string
-        default: "artifactory-ci.gm.com"
+        default: "sarangeplus.jfrog.io"
       jf_project:
         description: "JFrog Project key"
         required: true
