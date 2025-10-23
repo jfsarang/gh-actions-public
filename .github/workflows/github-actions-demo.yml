@@ -40,6 +40,7 @@ jobs:
       # JF_DOCKER_REPO:  ${{ vars.JF_DOCKER_REPO }}
       TAG: ${{ github.sha }}-${{ vars.IMAGE_NAME }}
       JF_REGISTRY: ${{ vars.JF_REGISTRY }}
+      JFORG_CLI_LOG_LEVEL: TRUE
 
     steps:
       - name: Checkout Repository
