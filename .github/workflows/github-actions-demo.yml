@@ -55,7 +55,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: sarangeplus.jfrog.io/${{ env.JF_DOCKER_REPO }}/${{ env.IMAGE_NAME }}-with-push:${{ github.run_number }}
+          tags: sarangeplus.jfrog.io/${{ env.JF_DOCKER_REPO }}/${{ env.IMAGE_NAME }}-396254:${{ github.run_number }}
 
       - name: Attest Docker Image and Send to JFrog Evidence
         id: attest
