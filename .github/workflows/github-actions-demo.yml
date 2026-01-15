@@ -39,7 +39,7 @@ jobs:
           JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
           JF_GIT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          oidc-provider-name: jfrog-github-oidc
+          oidc-provider-name: derekp-github-oidc
           
       
       - name: Log in to JFrog Docker Registry
