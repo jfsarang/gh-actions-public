@@ -14,6 +14,7 @@ env:
   JF_REGISTRY: ${{ vars.JF_REGISTRY }}
   JF_DOCKER_REPO: ${{ vars.JF_DOCKER_REPO }}
   IMAGE_NAME: ${{ vars.IMAGE_NAME }}
+  JFROG_CLI_LOG_LEVELL: DEBUG
 
 jobs:
   build-and-attest:
