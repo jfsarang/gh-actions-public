@@ -69,6 +69,6 @@ jobs:
       - name: Upload attestation to JFrog Evidence Service
         run: |
           echo "Uploading attestation bundle to JFrog Evidence Service..."
-          echo ${{ steps.attest.outputs.bundle-path }}"
+          echo "${{ steps.attest.outputs.bundle-path }}"
           jf evd create --sigstore-bundle "${{ steps.attest.outputs.bundle-path }}"
           echo "Attestation uploaded successfully for Ubuntu"
