@@ -1,71 +1,48 @@
-name: Reusable - Build, Push, Promote Docker Image
+# This workflow demonstrates building a Docker image, pushing it to JFrog Artifactory,
+# and attaching an SLSA build provenance attestation, which is stored in JFrog Evidence.
+
+name: Build, Push, and Attest to JFrog
 
 on:
   push:
     branches:
       - main
-  workflow_call:
-    inputs:
-      image_name:
-        description: "Docker image name (e.g. ods-vin-lookup)"
-        required: true
-        type: string
-      jf_url:
-        description: "JFrog URL (e.g. mycompany.jfrog.io)"
-        required: true
-        type: string
-        default: "sarangeplus.jfrog.io"
-      jf_project:
-        description: "JFrog Project key"
-        required: true
-        type: string
+  workflow_dispatch:
 
-permissions:
-  contents: read
-  packages: write
-  id-token: write
+# Use GitHub variables (vars) and secrets (secrets) for configuration
+env:
+  JF_REGISTRY: ${{ vars.JF_REGISTRY }}
+  JF_DOCKER_REPO: ${{ vars.JF_DOCKER_REPO }}
+  IMAGE_NAME: ${{ vars.IMAGE_NAME }}
 
 jobs:
-  build_and_promote:
-    name: Build, Push & Promote ${{ vars.IMAGE_NAME }}
+  build-and-attest:
     runs-on: ubuntu-latest
-
-    # Define job-level environment variables
-    env:
-      JFROG_CLI_PROJECT: ${{ vars.JF_PROJECT }}
-      JFROG_CLI_BUILD_NUMBER: ${{ github.run_number }}
-      JF_URL: ${{ secrets.JF_URL }}
-      IMG_NAME: ${{ vars.IMAGE_NAME }}
-      JFROG_CLI_BUILD_NAME: ${{ vars.IMAGE_NAME }}-docker
-      # JF_DOCKER_REPO:  ${{ vars.JF_DOCKER_REPO }}
-      TAG: ${{ github.sha }}-${{ vars.IMAGE_NAME }}
-      JF_REGISTRY: ${{ vars.JF_REGISTRY }}
-      JFORG_CLI_LOG_LEVEL: TRUE
+    permissions:
+      contents: read
+      packages: write
+      id-token: write      # Required for OIDC token access
+      attestations: write  # Required for attestation
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Verify Environment Variables
-        run: |
-          echo "JFrog Cli Project: $JFROG_CLI_PROJECT"
-          echo "JFrog Cli Build Number: $JFROG_CLI_BUILD_NUMBER"
-          echo "JFrog URL:  $JF_URL"
-          echo "Image Name: $IMG_NAME"
-          echo "JFrog Cli Build Name: $JFROG_CLI_BUILD_NAME"
-          echo "Git SHA Tag: $TAG"
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Setup JFrog CLI
-        id: jfrog-cli
+      - name: Install and Configure JFrog CLI
+        id: setup-jfrog-cli
         uses: jfrog/setup-jfrog-cli@v4
         env:
-          JF_URL: ${{ env.JF_URL }}
-          JF_PROJECT: ${{ env.JFROG_CLI_PROJECT }}
+          JF_URL: ${{ secrets.JF_URL }}
           JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
+          JF_GIT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          disable-auto-build-publish: true
-
-      - name: Docker Login to JFrog
+          oidc-provider-name: jfrog-github-oidc
+          
+      
+      - name: Log in to JFrog Docker Registry
         uses: docker/login-action@v3
         with:
           registry: ${{ env.JF_REGISTRY }}
@@ -73,30 +50,24 @@ jobs:
           password: ${{ secrets.JF_PASSWORD }}
 
       - name: Build and Push Docker Image
+        id: build-and-push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: sarangeplus.jfrog.io/${{ env.JF_DOCKER_REPO }}/${{ env.IMAGE_NAME }}-with-push:${{ github.run_number }}
+
+      - name: Attest Docker Image and Send to JFrog Evidence
+        id: attest
+        uses: actions/attest-build-provenance@v2
+        with:
+          # The 'oci://' prefix is required by JFrog to correctly parse the artifact type
+          subject-name: oci://${{ env.JF_DOCKER_REPO }}/${{ env.IMAGE_NAME }}-396254
+          # This links the attestation directly to the image digest from the build step
+          subject-digest: ${{ steps.build-and-push.outputs.digest }}
+
+      - name: Upload attestation to JFrog Evidence Service
         run: |
-          IMAGE_FULL_NAME="${JF_REGISTRY}/raphaelz-stage-docker/${IMG_NAME}"
-          echo "Building Docker image: $IMAGE_FULL_NAME:$TAG"
-          docker build --target $IMG_NAME -t $IMAGE_FULL_NAME:$TAG -f ./Dockerfile .
-
-          echo "Pushing Docker image: $IMAGE_FULL_NAME:$TAG"
-          jf docker push $IMAGE_FULL_NAME:$TAG --build-name="$JFROG_CLI_BUILD_NAME" --build-number="$JFROG_CLI_BUILD_NUMBER" --project=$JFROG_CLI_PROJECT
-
-          echo "Tagging and pushing latest"
-          docker tag $IMAGE_FULL_NAME:$TAG $IMAGE_FULL_NAME:latest
-          jf docker push $IMAGE_FULL_NAME:latest --build-name="$JFROG_CLI_BUILD_NAME" --build-number="$JFROG_CLI_BUILD_NUMBER" --project=$JFROG_CLI_PROJECT
-          
-          echo "Successfully built and pushed Docker image"
-          echo "Image: $IMAGE_FULL_NAME:$TAG"
-          echo "Latest: $IMAGE_FULL_NAME:latest"
-
-      - name: Publish Build Info
-        run: |
-          jf rt build-publish "$JFROG_CLI_BUILD_NAME" "$JFROG_CLI_BUILD_NUMBER" --project=$JFROG_CLI_PROJECT
-
-      - name: Create Release Bundle
-        run: |
-          jf rbc --project="$JFROG_CLI_PROJECT" --build-name="$JFROG_CLI_BUILD_NAME" --build-number="$JFROG_CLI_BUILD_NUMBER" "$JFROG_CLI_BUILD_NAME" "$JFROG_CLI_BUILD_NUMBER"
-
-      - name: Promote Release Bundle
-        run: |
-          jf rbp "$JFROG_CLI_BUILD_NAME" "$JFROG_CLI_BUILD_NUMBER" DEV --project="$JFROG_CLI_PROJECT" --include-repos "raphaelz-release-docker"
+          echo "Uploading attestation bundle to JFrog Evidence Service..."
+          jf evd create --sigstore-bundle "${{ steps.attest.outputs.bundle-path }}"
+          echo "Attestation uploaded successfully for Ubuntu ${{ matrix.ubuntu }}"
