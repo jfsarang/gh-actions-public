@@ -56,8 +56,8 @@ jobs:
           context: .
           push: true
           tags: sarangeplus.jfrog.io/${{ env.JF_DOCKER_REPO }}/${{ env.IMAGE_NAME }}-396254:${{ github.run_number }}
-
-      - name: Attest Docker Image and Send to JFrog Evidence
+  
+      - name: Generate attestation
         id: attest
         uses: actions/attest-build-provenance@v2
         with:
@@ -65,9 +65,10 @@ jobs:
           subject-name: oci://sarangeplus.jfrog.io/${{ env.JF_DOCKER_REPO }}/${{ env.IMAGE_NAME }}-396254
           # This links the attestation directly to the image digest from the build step
           subject-digest: ${{ steps.build-and-push.outputs.digest }}
-
+    
       - name: Upload attestation to JFrog Evidence Service
         run: |
           echo "Uploading attestation bundle to JFrog Evidence Service..."
+          echo ${{ steps.attest.outputs.bundle-path }}"
           jf evd create --sigstore-bundle "${{ steps.attest.outputs.bundle-path }}"
-          echo "Attestation uploaded successfully for Ubuntu ${{ matrix.ubuntu }}"
+          echo "Attestation uploaded successfully for Ubuntu"
