@@ -117,10 +117,12 @@ jobs:
 
         
     - name: Build and push
-      uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 
+      uses: docker/build-push-action@v5
       with:
         load: true
-        context: ./images
+        # Change context to the root of the repo
+        context: . 
+        # Point to the specific Dockerfile inside your folder structure
         file: "./images/${{ steps.metadata.outputs.component }}/Dockerfile"
         labels: ${{ steps.docker-meta.outputs.labels }}
         tags: ${{ steps.docker-meta.outputs.tags }}
