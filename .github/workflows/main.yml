@@ -10,6 +10,7 @@ on:
         description: 'Specify the image to build (directory name in ./images)'
         type: string
         required: false
+        default: 'nbc-actions-runner'
       runs-on:
         description: 'Runner label to use'
         type: string
