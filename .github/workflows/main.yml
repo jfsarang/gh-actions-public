@@ -101,8 +101,18 @@ jobs:
     - name: get dockerfile dependencies
       id: dockerfile-dependencies
       run: |
+        # Define the path to your config
+        DEP_FILE="${GITHUB_WORKSPACE}/images/configs/dependencies.json"
+        
         echo "dependencies<<EOF" >> $GITHUB_OUTPUT
-        jq -r 'to_entries[] | "\(.key|ascii_upcase)_CLI_VERSION=\(.value)"' ${GITHUB_WORKSPACE}/images/configs/dependencies.json  >> $GITHUB_OUTPUT
+        
+        if [ -f "$DEP_FILE" ]; then
+          echo "Found dependencies file. Parsing..."
+          jq -r 'to_entries[] | "\(.key|ascii_upcase)_CLI_VERSION=\(.value)"' "$DEP_FILE" >> $GITHUB_OUTPUT
+        else
+          echo "WARNING: dependencies.json not found at $DEP_FILE. Proceeding with empty build-args."
+        fi
+        
         echo "EOF" >> $GITHUB_OUTPUT
 
         
