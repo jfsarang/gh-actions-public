@@ -66,7 +66,7 @@ jobs:
         # EDIT THESE: Your Registry Details
         OWNER_LC=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
         REGISTRY="sarangeplus.jfrog.io"
-        IMAGE="$REGISTRY/docker-local-rasuli/$OWNER_LC/$component"
+        IMAGE="$REGISTRY/docker-a-local/$OWNER_LC/$component"
         
         echo "component=$component" >> $GITHUB_OUTPUT
         echo "registry=$REGISTRY" >> $GITHUB_OUTPUT
