@@ -1,0 +1,148 @@
+name: Publish Docker Image
+
+on:
+  push:
+    tags:
+      - '*-v*' # Triggers on tags like 'my-app-v1.0.0'
+  workflow_dispatch:
+    inputs:
+      component:
+        description: 'Specify the image to build (directory name in ./images)'
+        type: string
+        required: false
+      runs-on:
+        description: 'Runner label to use'
+        type: string
+        default: 'ubuntu-latest'
+        required: false
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: docker-builder-${{ inputs.component || github.ref }}
+  cancel-in-progress: true
+
+env:
+  JF_REGISTRY: ${{ vars.JF_REGISTRY }}
+  JF_DOCKER_REPO: ${{ vars.JF_DOCKER_REPO }}
+  IMAGE_NAME: ${{ vars.IMAGE_NAME }}
+  JFROG_CLI_LOG_LEVEL: DEBUG
+  
+jobs:
+  docker-build:
+    name: Build ${{ inputs.component || github.ref_name }} Docker Image
+    runs-on: ${{ inputs.runs-on || 'ubuntu-latest' }}
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Determine metadata
+      id: metadata
+      shell: bash
+      env:
+        COMPONENT_INPUT: ${{ inputs.component }}
+      run: |
+        isTag=$([[ $GITHUB_REF_TYPE == "tag" ]] && echo "true" || echo "false")
+        ref=$GITHUB_REF_NAME
+        
+        if [ "$isTag" = "false" ] && [ -n "$COMPONENT_INPUT" ]; then
+          component=$COMPONENT_INPUT
+        elif [ "$isTag" = "true" ]; then
+          # Extracts 'appname' from 'appname-v1.0.0'
+          if [[ $ref =~ ^(.+)-v(.+)$ ]]; then
+            component="${BASH_REMATCH[1]}"
+          else
+            echo "Error: Tag must follow <component>-v<version> format"
+            exit 1
+          fi
+        else
+          echo "Error: Specify component manually or use a valid tag."
+          exit 1
+        fi
+
+        # EDIT THESE: Your Registry Details
+        OWNER_LC=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+        REGISTRY="ghcr.io" # e.g., ghcr.io or docker.io
+        IMAGE="$REGISTRY/$OWNER_LC/$component"
+        
+        echo "component=$component" >> $GITHUB_OUTPUT
+        echo "registry=$REGISTRY" >> $GITHUB_OUTPUT
+        echo "image=$IMAGE" >> $GITHUB_OUTPUT
+
+    - name: Login to Artifactory
+      uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
+      with:
+          registry: ${{ env.JF_REGISTRY }}
+          username: ${{ secrets.JF_USERNAME }}
+          password: ${{ secrets.JF_PASSWORD }}
+        
+    - name: Login to Registry
+      uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2
+      with:
+        registry: ${{ env.JF_REGISTRY }}
+        username: ${{ secrets.JF_USERNAME }}
+        password: ${{ secrets.JF_PASSWORD }}
+
+          
+    - name: Docker meta
+      id: docker-meta
+      uses: docker/metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf
+      with:
+        images: ${{ steps.metadata.outputs.image }}
+        tags: |
+          type=match,pattern=(.+)-v(.*),group=2
+          type=sha,prefix=
+          type=raw,value=latest,enable=${{ github.ref_type == 'tag' }}
+    
+    
+    - name: get dockerfile dependencies
+      id: dockerfile-dependencies
+      run: |
+        echo "dependencies<<EOF" >> $GITHUB_OUTPUT
+        jq -r 'to_entries[] | "\(.key|ascii_upcase)_CLI_VERSION=\(.value)"' ${GITHUB_WORKSPACE}/images/configs/dependencies.json  >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+        
+    - name: Build and push
+      uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 
+      with:
+        load: true
+        context: ./images
+        file: "./images/${{ steps.metadata.outputs.component }}/Dockerfile"
+        labels: ${{ steps.docker-meta.outputs.labels }}
+        tags: ${{ steps.docker-meta.outputs.tags }}
+        build-args: ${{ steps.dockerfile-dependencies.outputs.dependencies }}
+
+
+    - name: Download JFrog CLI
+      uses: jfrog/setup-jfrog-cli@279b1f629f43dd5bc658d8361ac4802a7ef8d2d5 # v4.9.1
+      env:
+          JF_URL: ${{ secrets.JF_URL }}
+          JF_GIT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        oidc-provider-name: github-oidc-integration
+        version: '2.99.0' # https://github.com/jfrog/jfrog-cli/releases
+        disable-auto-build-publish: true
+
+    
+    - name: Verify JFrog CLI installation
+      run: |
+        jf --version
+        docker info
+
+        
+    - name: Publish docker image
+      env: 
+        JFROG_CLI_LOG_TIMESTAMP: DATE_AND_TIME
+      run: |
+        jf docker push ${{ steps.metadata.outputs.image }}:${{ steps.docker-meta.outputs.version }} \
+          --build-name $GITHUB_REPOSITORY \
+          --build-number $GITHUB_REF_NAME
+
+          
+    - name: Publish build Info and release Bundle
+      uses: NBC-Actions/publish-release-bundle@8f4a669c57add4540f32ccc39c1c2d38600acb56 # v0.1.0
+
+
