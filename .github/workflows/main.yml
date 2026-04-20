@@ -65,8 +65,8 @@ jobs:
 
         # EDIT THESE: Your Registry Details
         OWNER_LC=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
-        REGISTRY="ghcr.io" # e.g., ghcr.io or docker.io
-        IMAGE="$REGISTRY/$OWNER_LC/$component"
+        REGISTRY="sarangeplus.jfrog.io"
+        IMAGE="docker-local/$OWNER_LC/$component"
         
         echo "component=$component" >> $GITHUB_OUTPUT
         echo "registry=$REGISTRY" >> $GITHUB_OUTPUT
