@@ -120,10 +120,10 @@ jobs:
       uses: docker/build-push-action@v5
       with:
         load: true
-        # Change context to the root of the repo
         context: . 
-        # Point to the specific Dockerfile inside your folder structure
-        file: "./images/${{ steps.metadata.outputs.component }}/Dockerfile"
+        # Try using the output from the metadata step directly 
+        # and ensure the path is correct relative to the root
+        file: "images/${{ steps.metadata.outputs.component }}/Dockerfile"
         labels: ${{ steps.docker-meta.outputs.labels }}
         tags: ${{ steps.docker-meta.outputs.tags }}
         build-args: ${{ steps.dockerfile-dependencies.outputs.dependencies }}
