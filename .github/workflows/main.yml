@@ -142,7 +142,7 @@ jobs:
           --build-number $GITHUB_REF_NAME
 
           
-    - name: Publish build Info and release Bundle
-      uses: NBC-Actions/publish-release-bundle@8f4a669c57add4540f32ccc39c1c2d38600acb56 # v0.1.0
+    # - name: Publish build Info and release Bundle
+    #   uses: NBC-Actions/publish-release-bundle@8f4a669c57add4540f32ccc39c1c2d38600acb56 # v0.1.0
 
 
