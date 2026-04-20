@@ -37,7 +37,7 @@ jobs:
     runs-on: ${{ inputs.runs-on || 'ubuntu-latest' }}
     steps:
     - name: Checkout Repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
     - name: Determine metadata
       id: metadata
@@ -66,7 +66,7 @@ jobs:
         # EDIT THESE: Your Registry Details
         OWNER_LC=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
         REGISTRY="sarangeplus.jfrog.io"
-        IMAGE="$REGISTRY/docker-a-local/$OWNER_LC/$component"
+        IMAGE="$REGISTRY/$JF_DOCKER_REPO/$OWNER_LC/$component"
         
         echo "component=$component" >> $GITHUB_OUTPUT
         echo "registry=$REGISTRY" >> $GITHUB_OUTPUT
@@ -117,7 +117,7 @@ jobs:
 
         
     - name: Build and push
-      uses: docker/build-push-action@v5
+      uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294
       with:
         load: true
         context: . 
